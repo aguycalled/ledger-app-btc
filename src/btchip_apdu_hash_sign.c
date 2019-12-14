@@ -23,7 +23,7 @@
 unsigned short btchip_apdu_hash_sign() {
     unsigned long int lockTime;
     uint32_t sighashType;
-    unsigned char dataBuffer[8];
+    unsigned char dataBuffer[9];
     unsigned char hash1[32];
     unsigned char hash2[32];
     unsigned char authorizationLength;
@@ -148,7 +148,7 @@ unsigned short btchip_apdu_hash_sign() {
             }
             else {
                 btchip_write_u32_le(dataBuffer, lockTime);
-                btchip_write_u32_le(dataBuffer + 4, sighashType);
+                btchip_write_u32_le(dataBuffer + 5, sighashType);
                 PRINTF("Finalize hash with\n%.*H\n", sizeof(dataBuffer), dataBuffer);
 
                 cx_hash(&btchip_context_D.transactionHashFull.sha256.header, CX_LAST,

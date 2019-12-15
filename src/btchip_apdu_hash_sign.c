@@ -21,9 +21,8 @@
 #define SIGHASH_ALL 0x01
 
 unsigned short btchip_apdu_hash_sign() {
-    unsigned long int lockTime;
     uint32_t sighashType;
-    unsigned char dataBuffer[9];
+    unsigned char dataBuffer[4];
     unsigned char hash1[32];
     unsigned char hash2[32];
     unsigned char authorizationLength;
@@ -44,41 +43,32 @@ unsigned short btchip_apdu_hash_sign() {
         return BTCHIP_SW_CONDITIONS_OF_USE_NOT_SATISFIED;
     }
 
-    if ((G_io_apdu_buffer[ISO_OFFSET_P1] != 0) &&
+    if (!(G_io_apdu_buffer[ISO_OFFSET_P1] == 0 || 
+        G_io_apdu_buffer[ISO_OFFSET_P1] == 1) &&
         (G_io_apdu_buffer[ISO_OFFSET_P2] != 0)) {
         return BTCHIP_SW_INCORRECT_P1_P2;
     }
 
-    if (G_io_apdu_buffer[ISO_OFFSET_LC] < (1 + 1 + 4 + 1)) {
+    if (G_io_apdu_buffer[ISO_OFFSET_P1] == 0 && G_io_apdu_buffer[ISO_OFFSET_LC] < (1 + 1 + 4 + 1)) {
         return BTCHIP_SW_INCORRECT_LENGTH;
     }
 
     // Check state
     BEGIN_TRY {
         TRY {
+          if (G_io_apdu_buffer[ISO_OFFSET_P1] == 1) {
+            unsigned char apduLength;
+            apduLength = G_io_apdu_buffer[ISO_OFFSET_LC];
+
+            PRINTF("Add to hash full\n%.*H\n", apduLength, G_io_apdu_buffer + ISO_OFFSET_CDATA);
+
+            cx_hash(&btchip_context_D.transactionHashFull.sha256.header, 0,
+                G_io_apdu_buffer + ISO_OFFSET_CDATA, apduLength, NULL, 0);
+
+            sw = BTCHIP_SW_OK;
+          } 
+          else if (G_io_apdu_buffer[ISO_OFFSET_P1] == 0) {
             btchip_set_check_internal_structure_integrity(0);
-
-            // Zcash special - store parameters for later
-
-            if ((btchip_context_D.usingOverwinter) &&
-                (!btchip_context_D.overwinterSignReady) &&
-                (btchip_context_D.segwitParsedOnce) &&
-                (btchip_context_D.transactionContext.transactionState == BTCHIP_TRANSACTION_NONE)) {
-                unsigned long int expiryHeight;
-                parameters += (4 * G_io_apdu_buffer[ISO_OFFSET_CDATA]) + 1;
-                authorizationLength = *(parameters++);
-                parameters += authorizationLength;
-                lockTime = btchip_read_u32(parameters, 1, 0);
-                parameters += 4;
-                sighashType = *(parameters++);
-                expiryHeight = btchip_read_u32(parameters, 1, 0);
-                btchip_write_u32_le(btchip_context_D.nLockTime, lockTime);
-                btchip_write_u32_le(btchip_context_D.sigHashType, sighashType);
-                btchip_write_u32_le(btchip_context_D.nExpiryHeight, expiryHeight);
-                btchip_context_D.overwinterSignReady = 1;
-                CLOSE_TRY;
-                return BTCHIP_SW_OK;
-            }
 
             if (btchip_context_D.transactionContext.transactionState !=
                 BTCHIP_TRANSACTION_SIGN_READY) {
@@ -105,8 +95,6 @@ unsigned short btchip_apdu_hash_sign() {
             parameters += (4 * G_io_apdu_buffer[ISO_OFFSET_CDATA]) + 1;
             authorizationLength = *(parameters++);
             parameters += authorizationLength;
-            lockTime = btchip_read_u32(parameters, 1, 0);
-            parameters += 4;
             sighashType = *(parameters++);
 
             if (((N_btchip.bkp.config.options &
@@ -142,23 +130,15 @@ unsigned short btchip_apdu_hash_sign() {
             // blank input to sign
 
             // Finalize the hash
+            btchip_write_u32_le(dataBuffer, sighashType);
+            PRINTF("Finalize hash with\n%.*H\n", sizeof(dataBuffer), dataBuffer);
 
-            if (btchip_context_D.usingOverwinter) {
-                cx_hash(&btchip_context_D.transactionHashFull.blake2b.header, CX_LAST, hash2, 0, hash2, 32);
-            }
-            else {
-                btchip_write_u32_le(dataBuffer, lockTime);
-                btchip_write_u32_le(dataBuffer + 5, sighashType);
-                PRINTF("Finalize hash with\n%.*H\n", sizeof(dataBuffer), dataBuffer);
-
-                cx_hash(&btchip_context_D.transactionHashFull.sha256.header, CX_LAST,
+            cx_hash(&btchip_context_D.transactionHashFull.sha256.header, CX_LAST,
                     dataBuffer, sizeof(dataBuffer), hash1, 32);
-                PRINTF("Hash1\n%.*H\n", sizeof(hash1), hash1);
+            PRINTF("Hash1\n%.*H\n", sizeof(hash1), hash1);
 
-                // Rehash
-                cx_sha256_init(&localHash);
-                cx_hash(&localHash.header, CX_LAST, hash1, sizeof(hash1), hash2, 32);
-            }
+            cx_sha256_init(&localHash);
+            cx_hash(&localHash.header, CX_LAST, hash1, sizeof(hash1), hash2, 32);
             PRINTF("Hash2\n%.*H\n", sizeof(hash2), hash2);
 
             // Sign
@@ -174,6 +154,7 @@ unsigned short btchip_apdu_hash_sign() {
             sw = BTCHIP_SW_OK;
 
             // Then discard the transaction and reply
+          }
         }
         CATCH_ALL {
             sw = SW_TECHNICAL_DETAILS(0xF);

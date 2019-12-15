@@ -87,6 +87,19 @@ unsigned char btchip_output_script_is_regular(unsigned char *buffer) {
     return 0;
 }
 
+unsigned char btchip_output_script_is_p2cs(unsigned char *buffer) {
+    static const unsigned char OP_COINSTAKE = 0xc6; 
+
+    if (buffer[1] == OP_COINSTAKE &&
+        buffer[2] == 0x63 &&
+        buffer[3] == 0x76 &&
+        buffer[4] == 0xa9 &&
+        buffer[5] == 0x14)
+        return 1;
+
+     return 0;
+}
+
 unsigned char btchip_output_script_is_p2sh(unsigned char *buffer) {
     if (G_coin_config->kind == COIN_KIND_HORIZEN) {
         if ((os_memcmp(buffer, ZEN_TRANSACTION_OUTPUT_SCRIPT_P2SH_PRE,
@@ -262,6 +275,51 @@ unsigned short btchip_public_key_to_encoded_base58(
 
     outputLen = outlen;
     if (btchip_encode_base58(tmpBuffer, 24 + versionSize, out, &outputLen) < 0) {
+        THROW(EXCEPTION);
+    }
+    return outputLen;
+}
+
+unsigned short btchip_double_public_key_to_encoded_base58(
+    unsigned char *in, unsigned short inlen,
+    unsigned char *in2, unsigned short inlen2, unsigned char *out,
+    unsigned short outlen, unsigned short version,
+    unsigned char alreadyHashed) {
+    unsigned char tmpBuffer[46];
+    unsigned char checksumBuffer[32];
+    cx_sha256_t hash;
+    unsigned char versionSize = (version > 255 ? 2 : 1);
+    size_t outputLen;
+
+    if (!alreadyHashed) {
+        PRINTF("To hash\n%.*H\n",inlen,in);
+        btchip_public_key_hash160(in, inlen, tmpBuffer + versionSize);
+        PRINTF("Hash160\n%.*H\n",20,(tmpBuffer + versionSize));
+
+        PRINTF("To hash\n%.*H\n",inlen2, in2);
+        btchip_public_key_hash160(in2, inlen2, tmpBuffer + versionSize + 20);
+        PRINTF("Hash160\n%.*H\n",20,(tmpBuffer + versionSize + 20));
+
+        if (version > 255) {
+            tmpBuffer[0] = (version >> 8);
+            tmpBuffer[1] = version;
+        } else {
+            tmpBuffer[0] = version;
+        }
+    } else {
+        os_memmove(tmpBuffer, in, 40 + versionSize);
+    }
+
+    cx_sha256_init(&hash);
+    cx_hash(&hash.header, CX_LAST, tmpBuffer, 40 + versionSize, checksumBuffer, 32);
+    cx_sha256_init(&hash);
+    cx_hash(&hash.header, CX_LAST, checksumBuffer, 32, checksumBuffer, 32);
+
+    PRINTF("Checksum\n%.*H\n",4,checksumBuffer);
+    os_memmove(tmpBuffer + 40 + versionSize, checksumBuffer, 4);
+
+    outputLen = outlen;
+    if (btchip_encode_base58(tmpBuffer, 44 + versionSize, out, &outputLen) < 0) {
         THROW(EXCEPTION);
     }
     return outputLen;

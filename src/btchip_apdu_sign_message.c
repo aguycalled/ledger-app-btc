@@ -96,6 +96,8 @@ unsigned short btchip_apdu_sign_message_internal() {
                     }
                     btchip_context_D.transactionSummary.payToAddressVersion =
                         btchip_context_D.payToAddressVersion;
+                    btchip_context_D.transactionSummary.payToColdStakeVersion =
+                        btchip_context_D.payToColdStakeVersion;
                     btchip_context_D.transactionSummary.payToScriptHashVersion =
                         btchip_context_D.payToScriptHashVersion;
                     os_memmove(

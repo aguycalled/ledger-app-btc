@@ -54,6 +54,7 @@ typedef struct btchip_transaction_summary_data_s
 struct btchip_transaction_summary_s {
     unsigned char active;
     unsigned char payToAddressVersion;
+    unsigned char payToColdStakeVersion;
     unsigned char payToScriptHashVersion;
     unsigned char authorizationHash[32];
     btchip_transaction_summary_data_t summarydata;

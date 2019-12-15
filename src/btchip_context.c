@@ -59,6 +59,7 @@ void btchip_context_init() {
         N_btchip.bkp.config.shortCoinId, N_btchip.bkp.config.shortCoinIdLength);
         */
         btchip_context_D.payToAddressVersion = G_coin_config->p2pkh_version;
+        btchip_context_D.payToColdStakeVersion = G_coin_config->p2cs_version;
         btchip_context_D.payToScriptHashVersion = G_coin_config->p2sh_version;
         btchip_context_D.coinFamily = G_coin_config->family;
         btchip_context_D.coinIdLength = strlen(PIC(G_coin_config->coinid));

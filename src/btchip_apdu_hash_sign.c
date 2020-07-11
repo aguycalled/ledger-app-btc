@@ -110,7 +110,7 @@ unsigned short btchip_apdu_hash_sign() {
                     sighashType |= (G_coin_config->forkid << 8);
                 } else {
                     if (sighashType != SIGHASH_ALL) {
-                        sw = BTCHIP_SW_INCORRECT_DATA;
+	                        sw = BTCHIP_SW_INCORRECT_DATA;
                         goto discardTransaction;
                     }
                 }

@@ -2175,7 +2175,10 @@ uint8_t prepare_single_output() {
     offset += 8;
     nativeSegwit = btchip_output_script_is_native_witness(
         btchip_context_D.currentOutput + offset);
-    if (btchip_output_script_is_op_return(btchip_context_D.currentOutput +
+    if (btchip_output_script_is_p2cf(btchip_context_D.currentOutput +
+                                                 offset)) {
+            strcpy(vars.tmp.fullAddress, "CFUND");
+    } else if (btchip_output_script_is_op_return(btchip_context_D.currentOutput +
                                           offset)) {
             strcpy(vars.tmp.fullAddress, "OP_RETURN");
     } else if ((G_coin_config->kind == COIN_KIND_QTUM) &&
@@ -2376,7 +2379,7 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
     for (i = 0; i < numberOutputs; i++) {
         unsigned char nullAmount = 1;
         unsigned int j;
-        unsigned char isOpReturn, isP2sh, isNativeSegwit, isP2cs, isP2cs2;
+        unsigned char isOpReturn, isP2sh, isNativeSegwit, isP2cs, isP2cs2, isP2cf;
         unsigned char isOpCreate, isOpCall;
 
         for (j = 0; j < 8; j++) {
@@ -2395,6 +2398,8 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
         isP2cs = btchip_output_script_is_p2cs(btchip_context_D.currentOutput +
                                               offset);
         isP2cs2 = btchip_output_script_is_p2cs2(btchip_context_D.currentOutput +
+                                              offset);
+        isP2cf = btchip_output_script_is_p2cf(btchip_context_D.currentOutput +
                                               offset);
         isNativeSegwit = btchip_output_script_is_native_witness(
             btchip_context_D.currentOutput + offset);
@@ -2417,7 +2422,7 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
         }
         if (!btchip_output_script_is_regular(btchip_context_D.currentOutput +
                                              offset) &&
-            !isP2sh && !isP2cs && !isP2cs2 && !(nullAmount && isOpReturn) &&
+            !isP2sh && !isP2cs && !isP2cs2 && !isP2cf && !(nullAmount && isOpReturn) &&
             (!(G_coin_config->kind == COIN_KIND_QTUM) ||
              (!isOpCreate && !isOpCall))) {
             if (!checkOnly) {
@@ -2426,7 +2431,7 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
             goto error;
         } else if (!btchip_output_script_is_regular(
                        btchip_context_D.currentOutput + offset) &&
-                   !isP2sh && !isP2cs && !isP2cs2 && !(nullAmount && isOpReturn)) {
+                   !isP2sh && !isP2cs && !isP2cs2 && !isP2cf && !(nullAmount && isOpReturn)) {
             if (!checkOnly) {
                 PRINTF("Error : Unrecognized input script");
             }

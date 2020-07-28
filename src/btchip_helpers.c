@@ -100,6 +100,19 @@ unsigned char btchip_output_script_is_p2cs(unsigned char *buffer) {
      return 0;
 }
 
+
+unsigned char btchip_output_script_is_p2cf(unsigned char *buffer) {
+    static const unsigned char OP_RETURN = 0x6a;
+    static const unsigned char OP_CFUND = 0xc1;
+
+    if (buffer[1] == OP_RETURN &&
+        buffer[2] == OP_CFUND)
+        return 1;
+
+    return 0;
+}
+
+
 unsigned char btchip_output_script_is_p2cs2(unsigned char *buffer) {
     static const unsigned char OP_COINSTAKE = 0xc6; 
     static const unsigned char OP_DROP = 0x75; 

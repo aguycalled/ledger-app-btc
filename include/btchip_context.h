@@ -163,6 +163,8 @@ struct btchip_context_s {
     unsigned short payToAddressVersion;
     /** Current Pay To Cold Stake version */
     unsigned short payToColdStakeVersion;
+    /** Current Pay To Cold Stake version */
+    unsigned short payToColdStake2Version;
     /** Current Pay To Script Hash version */
     unsigned short payToScriptHashVersion;
     /** Current coin family */
@@ -304,6 +306,7 @@ typedef enum btchip_coin_kind_e {
 typedef struct btchip_altcoin_config_s {
     unsigned short p2pkh_version;
     unsigned short p2cs_version;
+    unsigned short p2cs2_version;
     unsigned short p2sh_version;
     unsigned char family;
     //unsigned char* iconsuffix;// will use the icon provided on the stack (maybe)

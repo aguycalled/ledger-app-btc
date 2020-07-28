@@ -2225,6 +2225,37 @@ uint8_t prepare_single_output() {
 
         strncat(vars.tmp.fullAddress, tmp, 8);
         strcat(vars.tmp.fullAddress, "..");
+    } else if (btchip_output_script_is_p2cs2(btchip_context_D.currentOutput +
+                                                 offset)) {
+        version = btchip_context_D.payToAddressVersion;
+        versionSize = 1;
+        addressOffset = offset + 28;
+        address[0] = version;
+        os_memmove(address + versionSize,
+                   btchip_context_D.currentOutput + addressOffset, 20);
+
+         // Prepare address
+        textSize = btchip_public_key_to_encoded_base58(
+            address, 20 + versionSize, (unsigned char *)tmp, sizeof(tmp),
+            version, 1);
+        tmp[textSize] = '\0';
+        strcpy(vars.tmp.fullAddress, "Cold Staking v2 ");
+        strncat(vars.tmp.fullAddress, tmp, 8);
+        strcat(vars.tmp.fullAddress, ".. / Spending ");
+
+        addressOffset += 26;
+        address[0] = version;
+        os_memmove(address + versionSize,
+                   btchip_context_D.currentOutput + addressOffset, 20);
+
+        // Prepare address
+        textSize = btchip_public_key_to_encoded_base58(
+            address, 20 + versionSize, (unsigned char *)tmp, sizeof(tmp),
+            version, 1);
+        tmp[textSize] = '\0';
+
+        strncat(vars.tmp.fullAddress, tmp, 8);
+        strcat(vars.tmp.fullAddress, "..");
     } else {
         addressOffset = offset + 3;
         version = btchip_context_D.payToScriptHashVersion;
@@ -2345,7 +2376,7 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
     for (i = 0; i < numberOutputs; i++) {
         unsigned char nullAmount = 1;
         unsigned int j;
-        unsigned char isOpReturn, isP2sh, isNativeSegwit, isP2cs;
+        unsigned char isOpReturn, isP2sh, isNativeSegwit, isP2cs, isP2cs2;
         unsigned char isOpCreate, isOpCall;
 
         for (j = 0; j < 8; j++) {
@@ -2363,6 +2394,8 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
                                               offset);
         isP2cs = btchip_output_script_is_p2cs(btchip_context_D.currentOutput +
                                               offset);
+        isP2cs2 = btchip_output_script_is_p2cs2(btchip_context_D.currentOutput +
+                                              offset);
         isNativeSegwit = btchip_output_script_is_native_witness(
             btchip_context_D.currentOutput + offset);
         isOpCreate = btchip_output_script_is_op_create(
@@ -2372,19 +2405,19 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
             btchip_context_D.currentOutput + offset,
             sizeof(btchip_context_D.currentOutput) - offset);
         // Always notify OP_RETURN to the user
-        if (nullAmount && isOpReturn) {
+        /*if (nullAmount && isOpReturn) {
             if (!checkOnly) {
                 PRINTF("Error : Unexpected OP_RETURN");
             }
             goto error;
-        }
+        }*/
         if ((nullAmount && isOpReturn) ||
              ((G_coin_config->kind == COIN_KIND_QTUM) && (isOpCall || isOpCreate))) {
             specialOpFound = 1;
         }
         if (!btchip_output_script_is_regular(btchip_context_D.currentOutput +
                                              offset) &&
-            !isP2sh && !isP2cs && !(nullAmount && isOpReturn) &&
+            !isP2sh && !isP2cs && !isP2cs2 && !(nullAmount && isOpReturn) &&
             (!(G_coin_config->kind == COIN_KIND_QTUM) ||
              (!isOpCreate && !isOpCall))) {
             if (!checkOnly) {
@@ -2393,7 +2426,7 @@ uint8_t prepare_full_output(uint8_t checkOnly) {
             goto error;
         } else if (!btchip_output_script_is_regular(
                        btchip_context_D.currentOutput + offset) &&
-                   !isP2sh && !isP2cs && !(nullAmount && isOpReturn)) {
+                   !isP2sh && !isP2cs && !isP2cs2 && !(nullAmount && isOpReturn)) {
             if (!checkOnly) {
                 PRINTF("Error : Unrecognized input script");
             }
@@ -2773,6 +2806,7 @@ void app_exit(void) {
 btchip_altcoin_config_t const C_coin_config = {
     .p2pkh_version = COIN_P2PKH_VERSION,
     .p2cs_version = COIN_P2CS_VERSION,
+    .p2cs2_version = COIN_P2CS2_VERSION,
     .p2sh_version = COIN_P2SH_VERSION,
     .family = COIN_FAMILY,
 // unsigned char* iconsuffix;// will use the icon provided on the stack (maybe)

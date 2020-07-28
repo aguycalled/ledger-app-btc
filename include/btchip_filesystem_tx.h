@@ -55,6 +55,7 @@ struct btchip_transaction_summary_s {
     unsigned char active;
     unsigned char payToAddressVersion;
     unsigned char payToColdStakeVersion;
+    unsigned char payToColdStake2Version;
     unsigned char payToScriptHashVersion;
     unsigned char authorizationHash[32];
     btchip_transaction_summary_data_t summarydata;

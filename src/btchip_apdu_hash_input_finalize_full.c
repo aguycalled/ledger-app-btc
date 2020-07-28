@@ -44,7 +44,7 @@ static void btchip_apdu_hash_input_finalize_full_reset(void) {
 
 static bool check_output_displayable() {
     bool displayable = true;
-    unsigned char amount[8], isOpReturn, isP2sh, isP2cs, isNativeSegwit, j,
+    unsigned char amount[8], isOpReturn, isP2sh, isP2cs, isP2cs2, isNativeSegwit, j,
         nullAmount = 1;
     unsigned char isOpCreate, isOpCall;
 
@@ -63,6 +63,7 @@ static bool check_output_displayable() {
         btchip_output_script_is_op_return(btchip_context_D.currentOutput + 8);
     isP2sh = btchip_output_script_is_p2sh(btchip_context_D.currentOutput + 8);
     isP2cs = btchip_output_script_is_p2cs(btchip_context_D.currentOutput + 8);
+    isP2cs2 = btchip_output_script_is_p2cs2(btchip_context_D.currentOutput + 8);
     isNativeSegwit = btchip_output_script_is_native_witness(
         btchip_context_D.currentOutput + 8);
     isOpCreate =
@@ -76,7 +77,7 @@ static bool check_output_displayable() {
          !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
         (!(G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
-         !isP2sh && !isP2cs && !(nullAmount && isOpReturn))) {
+         !isP2sh && !isP2cs && !isP2cs2 && !(nullAmount && isOpReturn))) {
         PRINTF("Error : Unrecognized script");
         THROW(EXCEPTION);
     }
@@ -427,6 +428,8 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                     btchip_context_D.payToAddressVersion;
                 transactionSummary->payToColdStakeVersion =
                     btchip_context_D.payToColdStakeVersion;
+                transactionSummary->payToColdStake2Version =
+                    btchip_context_D.payToColdStake2Version;
                 transactionSummary->payToScriptHashVersion =
                     btchip_context_D.payToScriptHashVersion;
 
